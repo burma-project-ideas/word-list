@@ -1,129 +1,59 @@
 @using BlazorWordList.Features.SpellCheck
-@using BlazorWordList.Features.DictionaryLoader
 @inject SpellCheckService SpellCheckService
 @inject DictionaryLoaderService DictionaryLoader
 @inject IJSRuntime JSRuntime
+@implements IDisposable
 
-<div class="container max-w-5xl mx-auto px-4 py-12 md:py-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
-    <div class="flex flex-col space-y-4 mb-12 text-center sm:text-left">
-        <div class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest w-fit mx-auto sm:mx-0">
-            Intelligent Assistant
-        </div>
-        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight brand-gradient">Myanmar Spell Checker</h1>
-        <p class="text-muted-foreground text-lg max-w-2xl">Refine your writing with our AI-powered spelling assistant. Secure, local, and incredibly fast.</p>
+<div class="page-width spell-page">
+    <div class="spell-heading"><p class="eyebrow">A little care for every sentence</p><h1 class="reveal-text">Write with <span class="text-muted-foreground">confidence.</span></h1><p>Check Myanmar spellings as you write. Your text stays in your browser.</p></div>
+    <div class="editor-layout">
+        <section class="editor-panel" aria-labelledby="editor-heading">
+            <div class="editor-toolbar"><div><h2 id="editor-heading">Your writing</h2><span class="editor-status" role="status">@(_isDictionaryLoaded ? "Dictionary ready" : "Loading wordlists…")</span></div><div class="editor-actions"><button type="button" class="quiet-button" @onclick="ClearText">Clear</button><PrestigeShineButton OnClick="ExportText" Disabled="@(!_isDictionaryLoaded)">Save .txt <span aria-hidden="true">↓</span></PrestigeShineButton></div></div>
+            <label for="@_editorId" class="sr-only">Myanmar text to check</label>
+            <div id="@_editorId" @ref="_editorContainer" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Myanmar text to check" aria-describedby="editor-help" lang="my" spellcheck="false" @oninput="HandleInput" class="writing-editor myanmar" data-placeholder="ဒီနေရာမှာ စာရိုက်ပါ…"></div>
+            <div class="editor-bottom"><span>@_wordCount words <span aria-hidden="true">·</span> @_charCount characters</span><span>Checked on your device</span></div>
+        </section>
+        <aside class="writing-guide" aria-labelledby="guide-heading">
+            <span class="guide-glyph myanmar" aria-hidden="true" lang="my">စာ</span><h2 id="guide-heading">A helpful second look.</h2><p id="editor-help">Words with a <span class="sample-squiggle">red underline</span> aren’t in the wordlist. Click or focus one and press Enter to see suggestions.</p>
+            <ol><li>Write or paste your Myanmar text.</li><li>Choose a suggestion to replace a word.</li><li>Save your writing as a text file.</li></ol>
+            <div class="guide-note"><h3>Language has more to say.</h3><p>A missing word isn’t always a mistake. This tool checks spellings against a wordlist; it doesn’t check grammar or separate unspaced Myanmar sentences.</p></div>
+            <a href="/" class="text-link">Look up a word instead <span aria-hidden="true">↗</span></a>
+        </aside>
     </div>
-
-    @if (!_isInitialized)
+    @if (_showPopup)
     {
-        <div class="flex flex-col items-center justify-center p-12 md:p-20 border-2 border-dashed border-border rounded-[2.5rem] bg-card/50 space-y-6">
-            <div class="relative h-16 w-16">
-                <div class="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-                <div class="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-            </div>
-            <div class="text-center space-y-2">
-                <p class="text-xl font-bold font-myanmar">အဘိဓာန်ကို အဆင်သင့်ဖြစ်အောင် လုပ်ဆောင်နေပါသည်...</p>
-                <p class="text-sm text-muted-foreground">Preparing local language intelligence models...</p>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <!-- Left Side: Editor -->
-            <div class="lg:col-span-3 space-y-4">
-                <div class="flex items-center justify-between px-2">
-                    <span class="text-xs font-bold text-muted-foreground uppercase tracking-widest">Writing Canvas</span>
-                    <div class="flex items-center gap-2">
-                        <button @onclick="ClearText" class="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-95 shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                            Clear
-                        </button>
-                        <button @onclick="ExportText" class="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium transition-all hover:bg-primary/90 active:scale-95 shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Save .txt
-                        </button>
-                    </div>
-                </div>
-
-                <div class="relative group">
-                    <div class="absolute -inset-0.5 rounded-[2rem] bg-gradient-to-r from-primary/10 to-purple-500/10 opacity-0 group-focus-within:opacity-100 transition duration-500 blur"></div>
-                    <div id="@_editorId"
-                         @ref="_editorContainer" 
-                         contenteditable="true"
-                         @oninput="HandleInput"
-                         class="relative block w-full min-h-[400px] md:min-h-[500px] p-8 md:p-10 text-xl leading-relaxed text-foreground bg-card border-2 border-border rounded-[2rem] shadow-xl focus:outline-none focus:border-primary/50 transition-all font-myanmar selection:bg-primary/20"
-                         placeholder="ဤနေရာတွင် စာရိုက်ပါ...">
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between px-4 text-xs font-medium text-muted-foreground">
-                    <div class="flex items-center gap-4">
-                        <span class="flex items-center gap-1.5"><div class="h-1.5 w-1.5 rounded-full bg-primary/40"></div> @_wordCount words</span>
-                        <span class="flex items-center gap-1.5"><div class="h-1.5 w-1.5 rounded-full bg-primary/40"></div> @_charCount characters</span>
-                    </div>
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 border border-border/50">
-                        <div class="h-2 w-2 rounded-full @(_isDictionaryLoaded ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500")"></div>
-                        <span class="text-[9px] uppercase tracking-wider">@(_isDictionaryLoaded ? "Engine Ready" : "Initializing...")</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Side: Sidebar Info -->
-            <div class="space-y-6">
-                <div class="p-6 rounded-3xl bg-secondary/30 border border-border space-y-4">
-                    <h3 class="font-bold text-sm uppercase tracking-widest text-muted-foreground">Quick Tips</h3>
-                    <ul class="space-y-3 text-sm">
-                        <li class="flex gap-3">
-                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">1</span>
-                            <p>Words underlined in <span class="text-destructive font-bold underline decoration-wavy underline-offset-4">red</span> are potential spelling errors.</p>
-                        </li>
-                        <li class="flex gap-3">
-                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">2</span>
-                            <p>Click on any underlined word to see smart corrections.</p>
-                        </li>
-                        <li class="flex gap-3">
-                            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">3</span>
-                            <p>Suggestions are provided in real-time as you type.</p>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="p-6 rounded-3xl border border-border space-y-4 shadow-sm bg-card">
-                    <div class="flex items-center gap-3">
-                        <div class="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        </div>
-                        <h3 class="font-bold text-sm uppercase tracking-wider">Secure & Private</h3>
-                    </div>
-                    <p class="text-xs text-muted-foreground leading-relaxed">No text is ever sent to a server. All processing happens right in your browser, keeping your writing 100% private.</p>
-                </div>
-            </div>
-        </div>
-    }
-
-    <!-- Suggestions Popup -->
-    @if (_showPopup && _suggestions.Any())
-    {
-        <div class="fixed z-[100] p-1.5 bg-popover border-2 border-border rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 ring-4 ring-primary/5"
-             style="left: @(_popupLeft)px; top: @(_popupTop)px; min-width: 180px;">
-            <div class="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] px-3 py-2 mb-1 border-b border-border/50">Smart Suggestions</div>
-            <div class="flex flex-col gap-1">
+        <div class="suggestion-popover" role="dialog" aria-label="Spelling suggestions" @onkeydown="HandleSuggestionKey" style="left: @(Math.Clamp(_popupLeft, 8, 10000).ToString(System.Globalization.CultureInfo.InvariantCulture))px; top: @(_popupTop.ToString(System.Globalization.CultureInfo.InvariantCulture))px;">
+            <div class="suggestion-heading"><span>Suggestions</span><button type="button" class="quiet-button" @onclick="CloseSuggestions" aria-label="Close suggestions">×</button></div>
+            @if (_suggestions.Any())
+            {
                 @foreach (var suggestion in _suggestions)
                 {
-                    <button @onclick="() => ApplySuggestion(suggestion)" 
-                            class="px-3 py-2.5 text-left hover:bg-primary hover:text-primary-foreground text-foreground text-base shadow-sm font-medium rounded-xl transition-all font-myanmar group active:scale-[0.98]">
-                        <div class="flex items-center justify-between">
-                            <span>@suggestion</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 group-hover:opacity-100 transition-opacity"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        </div>
-                    </button>
+                    <button type="button" lang="my" class="suggestion-option myanmar" @onclick="() => ApplySuggestion(suggestion)">@suggestion <span aria-hidden="true">↵</span></button>
                 }
-            </div>
+            }
+            else
+            {
+                <p class="suggestion-empty">No close matches. You can keep your spelling or look it up in the dictionary.</p>
+            }
         </div>
     }
 </div>
 
 @code {
+    private async Task HandleSuggestionKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await CloseSuggestions();
+    }
+
+    private async Task CloseSuggestions()
+    {
+        HideSuggestions();
+        await _editorContainer.FocusAsync();
+    }
+
+    private DotNetObjectReference<SpellCheckArea>? _dotNetReference;
+    public void Dispose() { _debounceTimer?.Dispose(); _dotNetReference?.Dispose(); }
+
     private ElementReference _editorContainer;
     private bool _isInitialized = false;
     private bool _isDictionaryLoaded = false;
@@ -152,7 +82,7 @@
     {
         if (firstRender && _isInitialized)
         {
-            await JSRuntime.InvokeVoidAsync("spellCheck.initEditor", _editorId, DotNetObjectReference.Create(this));
+            await JSRuntime.InvokeVoidAsync("spellCheck.initEditor", _editorId, _dotNetReference = DotNetObjectReference.Create(this));
         }
     }
 

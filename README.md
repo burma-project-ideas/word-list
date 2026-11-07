@@ -102,3 +102,7 @@ Static Hosting အတွက် Output က `release/wwwroot` ဖြစ်ပါ�
 - ဒါက စကားလုံးစာရင်းအခြေခံ Checker ဖြစ်ပြီး Grammar Checker သို့မဟုတ် AI Model မဟုတ်ပါဘူး။ စာရင်းထဲမှာ မပါတဲ့ မှန်ကန်တဲ့စကားလုံးကိုလည်း အမှားအဖြစ် ပြနိုင်ပါတယ်။
 - Space နဲ့ Punctuation တွေအလိုက်ပဲ စကားလုံးခွဲထားတာကြောင့် Space မခြားတဲ့ မြန်မာဝါကျတွေကို စကားလုံးတစ်လုံးချင်း တိတိကျကျ မခွဲနိုင်ပါဘူး။
 - Published Service Worker က `.list` ဖိုင်တွေကို Precache မလုပ်သေးလို့ အင်တာနက်မရှိဘဲ Fresh Load လုပ်တဲ့အခါ Dictionary Data ရမယ်လို့ အာမမခံနိုင်ပါဘူး။ လက်ရှိဖွင့်ထားတဲ့ App မှာ ဖတ်ပြီးသား Data ကတော့ Memory ထဲမှာ ရှိပါတယ်။
+
+## UI Design
+
+The interface adapts [Prestige UI](https://prestigeui.com/)'s MIT-licensed NavbarPill and ShineButton components to Blazor, with shared typography, colors, and motion across both tools. Product-specific search and editor controls remain native Blazor. See [third-party notices](THIRD_PARTY_NOTICES.md). Fonts are self-hosted; reduced motion and light/dark themes are supported.

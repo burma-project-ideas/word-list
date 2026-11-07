@@ -1,0 +1,13 @@
+@* Adapted from Prestige UI's MIT-licensed ShineButton. See THIRD_PARTY_NOTICES.md. *@
+<button type="button" @onclick="OnClick" disabled="@Disabled"
+        class="group relative inline-flex h-11 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-foreground px-6 text-sm font-medium text-background transition-transform duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 @Class">
+    <span class="relative z-10">@ChildContent</span>
+    <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:animate-shine-sweep dark:via-white/20"></span>
+</button>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+}
